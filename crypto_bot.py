@@ -2,8 +2,7 @@ import requests
 from telegram import Update
 from telegram.ext import Application, CallbackContext, CommandHandler
 
-# Your CoinMarketCap API key
-API_KEY = 'fa3f6b57-d96a-4b38-8cbe-7255bd48269f'
+
 
 # Function to fetch cryptocurrency prices using CoinMarketCap API
 def get_crypto_prices(cryptos: list) -> str:

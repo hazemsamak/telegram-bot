@@ -163,7 +163,7 @@ async def add_movie_to_radarr(movie_details: dict) -> bool:
     }
     payload = {
         "title": movie_details['title'],
-        "qualityProfileId": 1,  # Adjust based on your Radarr settings
+        #"qualityProfileId": 1,  # Adjust based on your Radarr settings
         "titleSlug": movie_details['title'].lower().replace(' ', '-'),
         "tmdbId": movie_details['id'],
         "year": movie_details['release_date'][:4],

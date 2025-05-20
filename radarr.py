@@ -156,7 +156,7 @@ async def get_movie_details(movie_id: str) -> dict:
 
 # Function to add movie to Radarr
 async def add_movie_to_radarr(movie_details: dict) -> bool:
-    radarr_url = "http://sharksbay.ddns.net:7878/api/v3/movie"
+    radarr_url = "https://radarr.sharksbay.duckdns.org/api/v3/movie"
     headers = {
         "X-Api-Key": RADARR_API_KEY,
         "Content-Type": "application/json"

@@ -22,6 +22,8 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler,
                           ContextTypes, MessageHandler, filters)
 
+import os
+from dotenv import load_dotenv
 # Enable logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -49,11 +51,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 
-
-    # api_key = "3a08b89693784bcd8549dddb6ec336bf"
 # Function to search for movies
 async def search_movies(query: str) -> list:
-    api_key = "3a08b89693784bcd8549dddb6ec336bf"
+    api_key = os.getenv('TMDB_API_KEY')
     url = f"https://api.themoviedb.org/3/search/movie?api_key={api_key}&query={query}"
     try:
         response = requests.get(url)
@@ -110,7 +110,7 @@ async def movie_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 # Function to get movie details by movie_id
 async def get_movie_details(movie_id: str) -> dict:
-    api_key = "3a08b89693784bcd8549dddb6ec336bf"
+    api_key = os.getenv('TMDB_API_KEY')
     url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}"
     try:
         response = requests.get(url)
@@ -122,7 +122,7 @@ async def get_movie_details(movie_id: str) -> dict:
 
 # Function to add movie to Radarr
 async def add_movie_to_radarr(movie_details: dict) -> bool:
-    radarr_api_key = "6fc9ecbc88da49f286792f283a2c5bfd"
+    radarr_api_key = os.getenv('RADARR_API_KEY')
     radarr_url = "http://sharksbay.ddns.net:7878/api/v3/movie"
     headers = {
         "X-Api-Key": radarr_api_key,
@@ -149,7 +149,8 @@ async def add_movie_to_radarr(movie_details: dict) -> bool:
 
 def main() -> None:
     """Start the bot."""
-    bot_token = "6142588805:AAHII6-PG3rGxaS4FEjW5YSSb_NtGSDaqYw"
+    load_dotenv()
+    bot_token = os.getenv('BOT_TOKEN')
     # Create the Application and pass it your bot's token.
     application = Application.builder().token(bot_token).build()
 

@@ -1,0 +1,9 @@
+services:
+  telegram-bot:
+    build: .
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Dubai
+  

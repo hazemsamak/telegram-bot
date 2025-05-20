@@ -7,4 +7,7 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Asia/Dubai
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - RADARR_API_KEY=${RADARR_API_KEY}
+      - BOT_TOKEN=${BOT_TOKEN}
   

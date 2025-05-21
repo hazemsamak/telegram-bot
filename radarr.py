@@ -41,9 +41,24 @@ load_dotenv()
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 RADARR_API_KEY = os.getenv("RADARR_API_KEY")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+TELEGRAM_USER = os.getenv("TELEGRAM_USER")
 
-# Define a few command handlers. These usually take the two arguments update and
-# context.
+# Add your Telegram user ID here
+ALLOWED_USER_ID = TELEGRAM_USER  # <-- Replace with your actual Telegram user ID
+
+def user_restricted(func):
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+        user_id = str(update.effective_user.id) if update.effective_user else None
+        if user_id != ALLOWED_USER_ID:
+            if update.message:
+                await update.message.reply_text("Access denied.")
+            elif update.callback_query:
+                await update.callback_query.answer("Access denied.", show_alert=True)
+            return
+        return await func(update, context, *args, **kwargs)
+    return wrapper
+
+@user_restricted
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
@@ -52,6 +67,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         reply_markup=ForceReply(selective=True),
     )
 
+@user_restricted
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
     await update.message.reply_text("Help!")
@@ -70,6 +86,7 @@ async def search_movies(query: str) -> list:
         return []
 
 # Handler for the /search command
+@user_restricted
 async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = ' '.join(context.args)
     if not query:
@@ -89,6 +106,7 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await update.message.reply_text("Found movies:", reply_markup=reply_markup)
 
 # Handler for the callback query when a user selects a movie
+@user_restricted
 async def movie_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -123,6 +141,7 @@ async def movie_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await query.edit_message_text(text="Failed to fetch movie details.")
 
 # Handler for the confirmation callback
+@user_restricted
 async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()

@@ -42,6 +42,7 @@ TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 RADARR_API_KEY = os.getenv("RADARR_API_KEY")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 TELEGRAM_USER = os.getenv("TELEGRAM_USER")
+RADARR_URL = os.getenv("RADARR_URL")
 
 # Add your Telegram user ID here
 ALLOWED_USER_ID = TELEGRAM_USER  # <-- Replace with your actual Telegram user ID
@@ -60,17 +61,32 @@ def user_restricted(func):
 
 @user_restricted
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /start is issued."""
+    """Send a welcome message when the command /start is issued."""
     user = update.effective_user
-    await update.message.reply_html(
-        rf"Hi {user.mention_html()}!",
-        reply_markup=ForceReply(selective=True),
+    welcome_text = (
+        f"Hi {user.mention_html()}! 👋\n"
+        "Welcome to the Radarr Telegram Bot.\n\n"
+        "You can search for movies and add them to your Radarr server directly from Telegram.\n\n"
+        "Type /help to see all available commands and usage instructions."
     )
+    if update.message:
+        await update.message.reply_html(welcome_text)
+    else:
+        await update.callback_query.answer(welcome_text, show_alert=True)
 
 @user_restricted
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    await update.message.reply_text("Help!")
+    help_text = (
+        "Available commands and usage:\n"
+        "/start - Start the bot and get a welcome message.\n"
+        "/help - Show this help message.\n"
+        "/search <movie name> - Search for a movie by name.\n\n"
+        "After searching, select a movie from the list to view its details. "
+        "You will then be asked if you want to add the movie to Radarr.\n"
+        "Only authorized users can use this bot."
+    )
+    await update.message.reply_text(help_text)
 
 # Function to search for movies
 async def search_movies(query: str) -> list:
@@ -82,28 +98,41 @@ async def search_movies(query: str) -> list:
                 data = await response.json()
                 return data.get('results', [])
     except aiohttp.ClientError as e:
-        print(f"Error fetching data from API: {e}")
+        logger.error(f"Error fetching data from API: {e}")
         return []
 
 # Handler for the /search command
 @user_restricted
 async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = ' '.join(context.args)
+    query = ' '.join(context.args or [])
     if not query:
-        await update.message.reply_text("Please provide a movie name to search for.")
+        if update.message:
+            await update.message.reply_text("Please provide a movie name to search for.")
         return
 
     movies = await search_movies(query)
     if not movies:
-        await update.message.reply_text("No movies found.")
+        if update.message:
+            await update.message.reply_text("No movies found.")
         return
 
-    keyboard = [
-        [InlineKeyboardButton(f"{movie['title']} ({movie['release_date'][:4]})", callback_data=movie['id'])]
-        for movie in movies[:10]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Found movies:", reply_markup=reply_markup)
+    if not update.message:
+        return
+
+    for movie in movies[:5]:  # Show top 5 results with posters
+        title = movie.get('title', 'Unknown Title')
+        release_date = movie.get('release_date', '')
+        year = f" ({release_date[:4]})" if release_date else ''
+        poster_path = movie.get('poster_path')
+        poster_url = f"https://image.tmdb.org/t/p/w185{poster_path}" if poster_path else None
+        button = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"Select", callback_data=movie['id'])]
+        ])
+        caption = f"{title}{year}"
+        if poster_url:
+            await update.message.reply_photo(photo=poster_url, caption=caption, reply_markup=button)
+        else:
+            await update.message.reply_text(caption, reply_markup=button)
 
 # Handler for the callback query when a user selects a movie
 @user_restricted
@@ -175,7 +204,7 @@ async def get_movie_details(movie_id: str) -> dict:
 
 # Function to add movie to Radarr
 async def add_movie_to_radarr(movie_details: dict) -> bool:
-    radarr_url = "https://radarr.sharksbay.duckdns.org/api/v3/movie"
+    radarr_url = RADARR_URL + "/api/v3/movie"
     headers = {
         "X-Api-Key": RADARR_API_KEY,
         "Content-Type": "application/json"
